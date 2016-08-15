@@ -1,0 +1,10 @@
+{
+	"compilerOptions": {
+		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"target": "es6",
+		"lib": [
+			"es2016"
+		]
+	}
+}
