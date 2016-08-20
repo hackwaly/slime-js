@@ -1,0 +1,11 @@
+{
+  "name": "slime",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "rollup": "^0.34.10",
+    "rollup-plugin-typescript": "^0.8.1",
+    "rollup-watch": "^2.5.0",
+    "typescript": "^2.0.0"
+  }
+}
