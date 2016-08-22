@@ -11,13 +11,10 @@ for (let i = 0; i < 100000; i++) {
 let tree = LineTree.build(array);
 // console.profileEnd();
 
-function walk() {
-	let walker = new LineTree.LineWalker(tree);
-	walker.moveToFirst();
-	while (walker.node !== null) {
-		walker.moveToSuccessor();
-	}
-}
 console.profile('walk');
-walk();
+let walker = new LineTree.LineWalker(tree);
+walker.moveToFirst();
+while (walker.node !== null) {
+	walker.moveToSuccessor();
+}
 console.profileEnd();

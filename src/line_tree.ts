@@ -68,7 +68,7 @@ export class LineWalker {
 	}
 
 	get endOffset() {
-		return this.baseOffset + this.node.length;
+		return this.offset + this.node.length;
 	}
 
 	constructor(root: LineNode) {
@@ -84,11 +84,17 @@ export class LineWalker {
 	}
 
 	descendLeft() {
+		if (this.node.left === null) {
+			debugger;
+		}
 		this.push(this.node.left);
 		return this;
 	}
 
 	descendRight() {
+		if (this.node.right === null) {
+			debugger;
+		}
 		this.baseIndex = this.index + 1;
 		this.baseOffset = this.offset + this.node.length;
 		this.push(this.node.right);
@@ -147,6 +153,46 @@ export class LineWalker {
 			}
 			this.ascend();
 		}
+		return this;
+	}
+
+	seekToIndex(index: number): this {
+		let self = this;
+
+		function seek() {
+			if (index === self.index) {
+				return;
+			}
+			if (index < self.index) {
+				self.descendLeft();
+			} else {
+				self.descendRight();
+			}
+			seek();
+		}
+
+		this.reset();
+		seek();
+		return this;
+	}
+
+	seekToOffset(offset: number): this {
+		let self = this;
+
+		function seek() {
+			if (offset >= self.offset && offset < self.endOffset) {
+				return;
+			}
+			if (offset < self.offset) {
+				self.descendLeft();
+			} else if (offset >= self.endOffset) {
+				self.descendRight();
+			}
+			seek();
+		}
+
+		this.reset();
+		seek();
 		return this;
 	}
 
@@ -211,4 +257,56 @@ export function build(list: Iterable<{ length: number, delimiter: string }>) {
 	fakeRoot.right = null;
 	
 	return root;
+}
+
+function merge(left: LineNode, right: LineNode) {
+	if (left === null) return right;
+	if (right === null) return left;
+
+	if (left.priority < right.priority) {
+		let node = Object.create(left);
+		node.right = merge(left.right, right);
+		node.maintain();
+		return node;
+	} else {
+		let node = Object.create(right);
+		node.left = merge(left, right.left);
+		node.maintain();
+		return node;
+	}
+}
+
+function splitLeft(walker: LineWalker, dir: (walker: LineWalker) => boolean): LineNode {
+	if (walker.node === null) return null;
+
+	if (dir(walker)) {
+		return splitLeft(walker.descendLeft(), dir);
+	} else {
+		let node = Object.create(walker.node);
+		node.right = splitLeft(walker.descendRight(), dir);
+		node.maintain();
+		return node;
+	}
+}
+
+function splitRight(walker: LineWalker, dir: (walker: LineWalker) => boolean): LineNode {
+	if (walker.node === null) return null;
+
+	if (dir(walker)) {
+		let node = Object.create(walker.node);
+		node.left = splitRight(walker.descendLeft(), dir);
+		node.maintain();
+		return node;
+	} else {
+		return splitRight(walker.descendRight(), dir);
+	}
+}
+
+function split(root: LineNode, dir: (walker: LineWalker) => boolean, leftOrRight: boolean) {
+	let walker = new LineWalker(root);
+	if (leftOrRight) {
+		return splitLeft(walker, dir);
+	} else {
+		return splitRight(walker, dir);
+	}
 }
