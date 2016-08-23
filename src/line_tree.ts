@@ -258,22 +258,24 @@ export function build(list: Iterable<{ length: number, delimiter: string }>) {
 	return root;
 }
 
-function* scan(text: string): Iterable<{ length: number, delimiter: string }> {
+function scan(text: string) {
+	let segments: { length: number, delimiter: string }[] = [];
 	let regex = /\r?\n|\r/g;
 	let lastIndex = 0;
 	for (let match: RegExpExecArray; (match = regex.exec(text)) !== null;) {
-		yield {
+		segments.push({
 			length: regex.lastIndex - lastIndex,
 			delimiter: match[0]
-		};
+		});
 		lastIndex = regex.lastIndex;
 	}
 	if (lastIndex < text.length) {
-		yield {
+		segments.push({
 			length: text.length - lastIndex,
 			delimiter: ''
-		};
+		});
 	}
+	return segments;
 }
 
 export function edit(root: LineNode, start: number, length: number, text: string) {
@@ -321,7 +323,7 @@ export function edit(root: LineNode, start: number, length: number, text: string
 	return merge(merge(startPart, middlePart), endPart);
 }
 
-function merge(left: LineNode, right: LineNode) {
+export function merge(left: LineNode, right: LineNode) {
 	if (left === null) return right;
 	if (right === null) return left;
 
@@ -364,7 +366,7 @@ function splitRight(walker: LineWalker, dir: (walker: LineWalker) => boolean): L
 	}
 }
 
-function split(root: LineNode, dir: (walker: LineWalker) => boolean, leftOrRight: boolean) {
+export function split(root: LineNode, dir: (walker: LineWalker) => boolean, leftOrRight: boolean) {
 	let walker = new LineWalker(root);
 	if (leftOrRight) {
 		return splitLeft(walker, dir);
