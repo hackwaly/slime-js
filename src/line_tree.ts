@@ -174,7 +174,10 @@ export class LineWalker {
 		let self = this;
 
 		function seek() {
-			if (offset >= self.offset && offset < self.endOffset) {
+			if (offset >= self.offset && (
+				offset < self.endOffset || (
+					offset === self.endOffset &&
+					self.node.delimiter === ''))) {
 				return;
 			}
 			if (offset < self.offset) {
@@ -239,10 +242,12 @@ export function build(list: Iterable<{ length: number, delimiter: string }>) {
 	}
 
 	function maintain(list: List<LineNode>) {
+		if (list.head !== fakeRoot) {
+			list.head.maintain();
+		}
 		if (list.tail !== nil) {
 			maintain(list.tail);
 		}
-		list.head.maintain();
 	}	
 
 	maintain(stack);
@@ -310,8 +315,8 @@ export function edit(root: LineNode, start: number, length: number, text: string
 	}
 
 	let middlePart = build(segments);	
-	let startPart = split(root, walker => walker.index < startLineIndex, true);
-	let endPart = split(root, walker => endLineIndex <= walker.index, false);
+	let startPart = split(root, walker => startLineIndex <= walker.index, true);
+	let endPart = split(root, walker => endLineIndex < walker.index, false);
 
 	return merge(merge(startPart, middlePart), endPart);
 }
@@ -321,12 +326,12 @@ function merge(left: LineNode, right: LineNode) {
 	if (right === null) return left;
 
 	if (left.priority < right.priority) {
-		let node = Object.create(left);
+		let node = copy(left);
 		node.right = merge(left.right, right);
 		node.maintain();
 		return node;
 	} else {
-		let node = Object.create(right);
+		let node = copy(right);
 		node.left = merge(left, right.left);
 		node.maintain();
 		return node;
@@ -335,11 +340,11 @@ function merge(left: LineNode, right: LineNode) {
 
 function splitLeft(walker: LineWalker, dir: (walker: LineWalker) => boolean): LineNode {
 	if (walker.node === null) return null;
-
+	
 	if (dir(walker)) {
 		return splitLeft(walker.descendLeft(), dir);
 	} else {
-		let node = Object.create(walker.node);
+		let node = copy(walker.node);
 		node.right = splitLeft(walker.descendRight(), dir);
 		node.maintain();
 		return node;
@@ -350,7 +355,7 @@ function splitRight(walker: LineWalker, dir: (walker: LineWalker) => boolean): L
 	if (walker.node === null) return null;
 
 	if (dir(walker)) {
-		let node = Object.create(walker.node);
+		let node = copy(walker.node);
 		node.left = splitRight(walker.descendLeft(), dir);
 		node.maintain();
 		return node;
@@ -366,4 +371,14 @@ function split(root: LineNode, dir: (walker: LineWalker) => boolean, leftOrRight
 	} else {
 		return splitRight(walker, dir);
 	}
+}
+
+function copy(node: LineNode) {
+	let copy = new LineNode();
+	copy.left = node.left;
+	copy.right = node.right;
+	copy.priority = node.priority;
+	copy.length = node.length;
+	copy.delimiter = node.delimiter;
+	return copy;
 }

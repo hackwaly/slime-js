@@ -1,20 +1,11 @@
 import * as LineTree from './line_tree';
 
-let array: { length: number, delimiter: string }[] = [];
-for (let i = 0; i < 100000; i++) {
-	array.push({
-		length: i,
-		delimiter: ''
-	});
-}
-// console.profile('build');
-let tree = LineTree.build(array);
-// console.profileEnd();
+let tree = LineTree.build([{ length: 0, delimiter: '' }]);
+tree = LineTree.edit(tree, 0, 0, '123');
+tree = LineTree.edit(tree, 1, 2, '4\n5\n6');
 
-console.profile('walk');
-let walker = new LineTree.LineWalker(tree);
-walker.moveToFirst();
-while (walker.node !== null) {
-	walker.moveToSuccessor();
-}
-console.profileEnd();
+// let array: { length: number, delimiter: string }[] = [];
+// for (let i = 0; i < 100000; i++) {
+// 	array.push({ length: i, delimiter: '' });
+// }
+// let tree = LineTree.build(array)

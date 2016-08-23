@@ -4,6 +4,7 @@ import typescript from 'typescript';
 export default {
 	plugins: [
 		typescriptPlugin({
+			target: 'es6',
 			typescript
 		})
 	]
