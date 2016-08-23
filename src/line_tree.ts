@@ -84,17 +84,11 @@ export class LineWalker {
 	}
 
 	descendLeft() {
-		if (this.node.left === null) {
-			debugger;
-		}
 		this.push(this.node.left);
 		return this;
 	}
 
 	descendRight() {
-		if (this.node.right === null) {
-			debugger;
-		}
 		this.baseIndex = this.index + 1;
 		this.baseOffset = this.offset + this.node.length;
 		this.push(this.node.right);
@@ -257,6 +251,69 @@ export function build(list: Iterable<{ length: number, delimiter: string }>) {
 	fakeRoot.right = null;
 	
 	return root;
+}
+
+function* scan(text: string): Iterable<{ length: number, delimiter: string }> {
+	let regex = /\r?\n|\r/g;
+	let lastIndex = 0;
+	for (let match: RegExpExecArray; (match = regex.exec(text)) !== null;) {
+		yield {
+			length: regex.lastIndex - lastIndex,
+			delimiter: match[0]
+		};
+		lastIndex = regex.lastIndex;
+	}
+	if (lastIndex < text.length) {
+		yield {
+			length: text.length - lastIndex,
+			delimiter: ''
+		};
+	}
+}
+
+export function edit(root: LineNode, start: number, length: number, text: string) {
+	let end = start + length;
+	let walker = new LineWalker(root);
+	
+	walker.seekToOffset(start);
+	let startLineIndex = walker.index;
+	let startLineOffset = walker.offset;
+	let startPartLength = start - startLineOffset;
+
+	walker.seekToOffset(end);
+	let endLineIndex = walker.index;
+	let endLineOffset = walker.offset;
+	let endLineLength = walker.node.length;
+	let endPartLength = endLineOffset + endLineLength - end;
+	let endLineDelimiter = walker.node.delimiter;
+
+	let segments = [...scan(text)];
+	if (segments.length > 0) {
+		let firstSegment = segments[0];
+		firstSegment.length += startPartLength;
+
+		let lastSegment = segments[segments.length - 1];
+		if (lastSegment.delimiter === '') {
+			lastSegment.length += endPartLength;
+			lastSegment.delimiter = endLineDelimiter;
+		} else {
+			segments.push({
+				length: endPartLength,
+				delimiter: endLineDelimiter
+			});
+		}
+	} else {
+		segments.push({
+			length: startPartLength + endPartLength,
+			delimiter: endLineDelimiter
+		});
+	}
+
+	let middlePart = build(segments);	
+	let startPart = split(root, walker => walker.index < startLineIndex, true);
+	let endPart = split(root, walker => endLineIndex <= walker.index, false);
+
+	return merge(merge(startPart, middlePart), endPart);
 }
 
 function merge(left: LineNode, right: LineNode) {
